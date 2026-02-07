@@ -29,8 +29,8 @@ const features = [
   },
   {
     icon: "🔄",
-    title: "RSI Divergences",
-    description: "Regular and hidden divergences auto-detected. Spot reversals before they happen.",
+    title: "Bullish & Bearish Divergences",
+    description: "RSI divergences auto-detected. Spot reversals before they happen.",
     tier: "Pro"
   },
   {
@@ -75,7 +75,7 @@ const faqs = [
   },
   {
     q: "What's the difference between Basic and Pro?",
-    a: "Basic includes PD levels, ORB, VWAP with bands, and all alerts. Pro adds hidden divergences, buy/sell signals, trend bands, and session highlights."
+    a: "Basic includes PD levels, ORB, VWAP with bands, and all alerts. Pro adds divergence detection, buy/sell signals, trend bands, session highlights, and AI chart analysis."
   },
   {
     q: "Is this a strategy or an indicator?",
@@ -243,7 +243,6 @@ export default function Home() {
                   "Previous Day Levels (PDH/PDL/Mid)",
                   "Opening Range Breakout",
                   "VWAP + 1 StdDev Bands",
-                  "Regular Divergences",
                   "All 12 Alerts",
                   "Email Support"
                 ].map((item, i) => (
@@ -277,11 +276,11 @@ export default function Home() {
               <ul className="space-y-3 mb-8">
                 {[
                   "Everything in Basic",
-                  "Hidden Divergences",
+                  "Bullish & Bearish Divergences",
                   "Buy/Sell Signals",
                   "Trend Bands",
                   "Session Highlights",
-                  "VWAP 2 StdDev Bands",
+                  "AI Chart Analysis",
                   "Priority Support"
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
