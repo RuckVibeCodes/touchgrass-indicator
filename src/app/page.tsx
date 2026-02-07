@@ -4,6 +4,12 @@ import Link from "next/link";
 
 const features = [
   {
+    icon: "🔮",
+    title: "AI Chart Analysis",
+    description: "Upload any chart, get instant AI analysis with key levels, trade ideas, and risk notes.",
+    tier: "Pro"
+  },
+  {
     icon: "📊",
     title: "Previous Day Levels",
     description: "PDH, PDL, and midline plotted automatically. Know your key liquidity zones.",
@@ -144,10 +150,10 @@ export default function Home() {
               Start Trading Smarter
             </Link>
             <Link
-              href="#features"
-              className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold text-lg transition-colors"
+              href="/analyze"
+              className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-lg transition-colors"
             >
-              See Features
+              🔮 Try AI Analysis Free
             </Link>
           </div>
           
