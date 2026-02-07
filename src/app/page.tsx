@@ -227,10 +227,10 @@ export default function Home() {
               </div>
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$49</span>
+                  <span className="text-4xl font-bold">$19</span>
                   <span className="text-gray-400">/month</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">or $499 lifetime</p>
+                <p className="text-sm text-gray-500 mt-1">or $149 lifetime</p>
               </div>
               <ul className="space-y-3 mb-8">
                 {[
@@ -263,10 +263,10 @@ export default function Home() {
               </div>
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$79</span>
+                  <span className="text-4xl font-bold">$29</span>
                   <span className="text-gray-400">/month</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">or $799 lifetime</p>
+                <p className="text-sm text-gray-500 mt-1">or $249 lifetime</p>
               </div>
               <ul className="space-y-3 mb-8">
                 {[
