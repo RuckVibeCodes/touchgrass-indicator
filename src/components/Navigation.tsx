@@ -14,6 +14,7 @@ import {
   Radar,
   Radio,
   Sparkles,
+  Users,
 } from 'lucide-react';
 
 export default function Navigation() {
@@ -138,6 +139,15 @@ export default function Navigation() {
                 Upgrade
               </Link>
             )}
+
+            {/* Creator Dashboard Link */}
+            <Link
+              href="/creator"
+              className="flex items-center gap-2 px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Creator
+            </Link>
 
             {/* User Button Placeholder */}
             {isSignedIn ? (
