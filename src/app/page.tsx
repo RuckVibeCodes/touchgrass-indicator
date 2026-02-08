@@ -4,46 +4,75 @@ import Link from "next/link";
 
 const features = [
   {
-    icon: "🔮",
-    title: "AI Chart Analysis",
-    description: "Upload any chart, get instant AI analysis with key levels, trade ideas, and risk notes.",
+    icon: "✨",
+    title: "Neon Glow Momentum MA",
+    description: "9-period SMA with dynamic glow effect. Green when bullish, red when bearish. See trend direction at a glance.",
+    tier: "Basic"
+  },
+  {
+    icon: "🎯",
+    title: "Smart BULLISH/BEARISH Signals",
+    description: "Powered by 9/21 MA crossover. Clear labels with exact price. No more guessing entries.",
+    tier: "Basic"
+  },
+  {
+    icon: "🔄",
+    title: "Momentum-Based Divergences",
+    description: "ChartPrime-style detection using momentum RSI. Catches reversals other indicators miss.",
     tier: "Pro"
   },
   {
     icon: "📊",
     title: "Previous Day Levels",
-    description: "PDH, PDL, and midline plotted automatically. Know your key liquidity zones.",
+    description: "PDH/PDL rectangle zone with dotted midline. Know exactly where yesterday ended.",
     tier: "Basic"
   },
   {
     icon: "⏰",
     title: "Opening Range Breakout",
-    description: "Configurable ORB window (default 9:30-9:45 ET). Catch the opening impulse.",
+    description: "Auto-detected ORB zone with midline. Configurable session times. Catch the morning momentum.",
     tier: "Basic"
   },
   {
     icon: "📈",
     title: "VWAP + Bands",
-    description: "Session VWAP with 1 & 2 standard deviation bands. Institutional fair value.",
+    description: "Institutional fair value with ±1 standard deviation bands. See where the big players trade.",
+    tier: "Pro"
+  },
+  {
+    icon: "🎨",
+    title: "Momentum Bar Coloring",
+    description: "Candles tinted by trend direction. Instant visual feedback on market bias.",
     tier: "Basic"
-  },
-  {
-    icon: "🔄",
-    title: "Bullish & Bearish Divergences",
-    description: "RSI divergences auto-detected. Spot reversals before they happen.",
-    tier: "Pro"
-  },
-  {
-    icon: "⚡",
-    title: "Buy/Sell Signals",
-    description: "Combined signal logic: ORB breaks, VWAP crosses, PD level sweeps.",
-    tier: "Pro"
   },
   {
     icon: "🔔",
     title: "Smart Alerts",
-    description: "12 configurable alerts for every key event. Never miss a setup.",
-    tier: "Basic"
+    description: "Get notified on signals, divergences, and level breaks. Never miss a setup.",
+    tier: "Pro"
+  }
+];
+
+const benefits = [
+  {
+    title: "See the Trend Instantly",
+    description: "The neon glow MA changes color based on momentum. No analysis needed — green means go, red means caution.",
+    icon: "👁️"
+  },
+  {
+    title: "Catch Reversals Early",
+    description: "Our momentum-based divergence detection spots exhaustion before price confirms. Same tech as premium indicators.",
+    icon: "🔮"
+  },
+  {
+    title: "Trade Key Levels",
+    description: "PD levels, ORB zones, and VWAP bands — all the institutional levels in one clean view.",
+    icon: "🏦"
+  },
+  {
+    title: "Reduce Chart Clutter",
+    description: "One indicator replaces 5. Clean design with toggle controls. Show only what you need.",
+    icon: "✨"
   }
 ];
 
@@ -51,19 +80,19 @@ const testimonials = [
   {
     name: "Alex T.",
     role: "Day Trader",
-    quote: "Finally, one indicator that replaces 5 others on my chart. Clean, fast, and accurate.",
+    quote: "The divergence detection alone paid for itself. Caught a reversal that saved my week.",
     avatar: "🧑‍💼"
   },
   {
     name: "Sarah M.",
     role: "Crypto Trader",
-    quote: "The divergence detection alone is worth the Pro upgrade. Caught 3 reversals last week.",
+    quote: "Finally, one indicator that does it all. My charts are so much cleaner now.",
     avatar: "👩‍💻"
   },
   {
     name: "Marcus J.",
-    role: "Forex Trader",
-    quote: "ORB + VWAP combo is lethal on ES futures. My win rate jumped 15%.",
+    role: "Futures Trader",
+    quote: "The ORB + VWAP combo is lethal on ES. Win rate jumped noticeably.",
     avatar: "👨‍💼"
   }
 ];
@@ -74,20 +103,24 @@ const faqs = [
     a: "TouchGrass works on any market available on TradingView — crypto, forex, stocks, futures, and indices."
   },
   {
-    q: "What's the difference between Basic and Pro?",
-    a: "Basic includes PD levels, ORB, VWAP with bands, and all alerts. Pro adds divergence detection, buy/sell signals, trend bands, session highlights, and AI chart analysis."
+    q: "What is the difference between Basic and Pro?",
+    a: "Basic includes the momentum MA, PD/ORB levels, bar coloring, and signals. Pro adds momentum-based divergence detection, VWAP bands, AI chart analysis, and priority support."
   },
   {
-    q: "Is this a strategy or an indicator?",
-    a: "TouchGrass is an indicator that provides levels, signals, and alerts. You make the trading decisions - we give you the edge."
+    q: "How does the divergence detection work?",
+    a: "We use momentum-based RSI (like ChartPrime) instead of regular RSI. This catches divergences earlier and more reliably than traditional methods."
   },
   {
     q: "Do you offer refunds?",
-    a: "Yes, we offer a 7-day money-back guarantee if you're not satisfied. No questions asked."
+    a: "Yes, we offer a 7-day money-back guarantee if you are not satisfied. No questions asked."
   },
   {
     q: "How do I access the indicator after purchase?",
     a: "After purchase, you receive access to the invite-only TradingView script. Add it to your chart and you are ready to trade."
+  },
+  {
+    q: "Can I use this for scalping?",
+    a: "Absolutely. The momentum MA and ORB zones are perfect for scalping. Many users run it on 1-5 minute charts."
   }
 ];
 
@@ -108,11 +141,11 @@ export default function Home() {
               <Link href="#features" className="text-gray-400 hover:text-white transition-colors">
                 Features
               </Link>
+              <Link href="#benefits" className="text-gray-400 hover:text-white transition-colors">
+                Benefits
+              </Link>
               <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors">
                 Pricing
-              </Link>
-              <Link href="#testimonials" className="text-gray-400 hover:text-white transition-colors">
-                Testimonials
               </Link>
               <Link href="#faq" className="text-gray-400 hover:text-white transition-colors">
                 FAQ
@@ -132,22 +165,22 @@ export default function Home() {
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-block px-4 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-sm mb-6">
-            🚀 Now available on TradingView
+            🔥 The all-in-one TradingView indicator
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-            Trade with Structure,<br />
-            <span className="text-emerald-400">Not Emotion</span>
+            Momentum. Levels. Divergences.<br />
+            <span className="text-emerald-400">One Clean Indicator.</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-            The all-in-one TradingView indicator combining PD levels, ORB, VWAP, divergences, 
-            and smart signals. Everything you need. Nothing you don&apos;t.
+            TouchGrass combines a neon glow momentum MA, smart signals, PD/ORB zones, 
+            VWAP bands, and ChartPrime-style divergence detection — all in one clutter-free package.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="#pricing"
               className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-lg transition-colors"
             >
-              Start Trading Smarter
+              Get TouchGrass
             </Link>
             <Link
               href="/analyze"
@@ -183,13 +216,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Everything You Need to Trade
+              Everything You Need, Nothing You Don&apos;t
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              One indicator. Six powerful features. Zero chart clutter.
+              8 powerful features. One indicator. Zero clutter.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, i) => (
               <div
                 key={i}
@@ -205,8 +238,30 @@ export default function Home() {
                     {feature.tier}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-400 text-sm">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section id="benefits" className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Why Traders Choose TouchGrass
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {benefits.map((benefit, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="text-4xl">{benefit.icon}</div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
+                  <p className="text-gray-400">{benefit.description}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -214,7 +269,7 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 px-4">
+      <section id="pricing" className="py-20 px-4 bg-[#111118]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -226,10 +281,10 @@ export default function Home() {
           </div>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Basic */}
-            <div className="bg-[#111118] border border-gray-800 rounded-2xl p-8">
+            <div className="bg-[#0a0a0f] border border-gray-800 rounded-2xl p-8">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold mb-2">Basic</h3>
-                <p className="text-gray-400">Essential levels and alerts</p>
+                <p className="text-gray-400">Essential momentum tools</p>
               </div>
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
@@ -240,10 +295,11 @@ export default function Home() {
               </div>
               <ul className="space-y-3 mb-8">
                 {[
-                  "Previous Day Levels (PDH/PDL/Mid)",
+                  "Neon Glow Momentum MA",
+                  "BULLISH/BEARISH Signals",
+                  "Previous Day Levels (PDH/PDL)",
                   "Opening Range Breakout",
-                  "VWAP + 1 StdDev Bands",
-                  "All 12 Alerts",
+                  "Momentum Bar Coloring",
                   "Email Support"
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
@@ -258,7 +314,7 @@ export default function Home() {
             </div>
 
             {/* Pro */}
-            <div className="bg-gradient-to-b from-emerald-500/10 to-[#111118] border border-emerald-500/30 rounded-2xl p-8 relative">
+            <div className="bg-gradient-to-b from-emerald-500/10 to-[#0a0a0f] border border-emerald-500/30 rounded-2xl p-8 relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-white text-sm font-medium rounded-full">
                 Most Popular
               </div>
@@ -276,11 +332,10 @@ export default function Home() {
               <ul className="space-y-3 mb-8">
                 {[
                   "Everything in Basic",
-                  "Bullish & Bearish Divergences",
-                  "Buy/Sell Signals",
-                  "Trend Bands",
-                  "Session Highlights",
+                  "Momentum-Based Divergences",
+                  "VWAP + StdDev Bands",
                   "AI Chart Analysis",
+                  "All Smart Alerts",
                   "Priority Support"
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
@@ -298,21 +353,21 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 px-4 bg-[#111118]">
+      <section id="testimonials" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Traders Love TouchGrass
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Join hundreds of traders who have upgraded their charts.
+              Join traders who have upgraded their charts.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <div
                 key={i}
-                className="bg-[#0a0a0f] border border-gray-800 rounded-xl p-6"
+                className="bg-[#111118] border border-gray-800 rounded-xl p-6"
               >
                 <p className="text-gray-300 mb-6">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center gap-3">
@@ -331,7 +386,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 px-4">
+      <section id="faq" className="py-20 px-4 bg-[#111118]">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -342,7 +397,7 @@ export default function Home() {
             {faqs.map((faq, i) => (
               <div
                 key={i}
-                className="bg-[#111118] border border-gray-800 rounded-xl p-6"
+                className="bg-[#0a0a0f] border border-gray-800 rounded-xl p-6"
               >
                 <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
                 <p className="text-gray-400">{faq.a}</p>
@@ -353,10 +408,10 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-b from-[#111118] to-[#0a0a0f]">
+      <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            Ready to Trade with an Edge?
+            Ready to Trade with Clarity?
           </h2>
           <p className="text-xl text-gray-400 mb-8">
             Join traders who ditched the indicator clutter for one clean, powerful tool.
