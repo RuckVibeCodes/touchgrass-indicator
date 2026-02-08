@@ -103,8 +103,8 @@ const faqs = [
     a: "TouchGrass works on any market available on TradingView — crypto, forex, stocks, futures, and indices."
   },
   {
-    q: "What is the difference between Basic and Pro?",
-    a: "Basic includes the momentum MA, PD/ORB levels, bar coloring, and signals. Pro adds momentum-based divergence detection, VWAP bands, AI chart analysis, and priority support."
+    q: "What is included?",
+    a: "Everything. One plan, all features: momentum MA, divergences, PD/ORB levels, VWAP bands, signals, AI chart analysis, and priority support. No gated features."
   },
   {
     q: "How does the divergence detection work?",
@@ -273,67 +273,51 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Simple, Transparent Pricing
+              One Plan. Everything Included.
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Choose monthly flexibility or save with lifetime access.
+              No tiers. No gated features. Just the full indicator.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Basic */}
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-2xl p-8">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">Basic</h3>
-                <p className="text-gray-400">Essential momentum tools</p>
+          
+          <div className="max-w-xl mx-auto">
+            <div className="bg-gradient-to-b from-emerald-500/10 to-[#0a0a0f] border border-emerald-500/30 rounded-2xl p-8 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-white text-sm font-medium rounded-full">
+                Full Access
               </div>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$19</span>
-                  <span className="text-gray-400">/month</span>
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold mb-2">TouchGrass</h3>
+                <p className="text-gray-400">The only crypto indicator you need</p>
+              </div>
+              
+              {/* Pricing Options */}
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="bg-[#0a0a0f] border border-gray-700 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold">$19</div>
+                  <div className="text-gray-400 text-sm">/month</div>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">or $149 lifetime</p>
+                <div className="bg-[#0a0a0f] border border-emerald-500 rounded-xl p-4 text-center relative">
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-emerald-500 text-white text-xs font-medium rounded">
+                    Save 35%
+                  </div>
+                  <div className="text-2xl font-bold">$149</div>
+                  <div className="text-gray-400 text-sm">/year</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-gray-700 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold">$349</div>
+                  <div className="text-gray-400 text-sm">lifetime</div>
+                </div>
               </div>
+              
               <ul className="space-y-3 mb-8">
                 {[
                   "Neon Glow Momentum MA",
                   "BULLISH/BEARISH Signals",
+                  "Momentum-Based Divergences",
                   "Previous Day Levels (PDH/PDL)",
                   "Opening Range Breakout",
-                  "Momentum Bar Coloring",
-                  "Email Support"
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <span className="text-emerald-400">✓</span>
-                    <span className="text-gray-300">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <button className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-semibold transition-colors">
-                Get Basic
-              </button>
-            </div>
-
-            {/* Pro */}
-            <div className="bg-gradient-to-b from-emerald-500/10 to-[#0a0a0f] border border-emerald-500/30 rounded-2xl p-8 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-white text-sm font-medium rounded-full">
-                Most Popular
-              </div>
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">Pro</h3>
-                <p className="text-gray-400">Full trading arsenal</p>
-              </div>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$29</span>
-                  <span className="text-gray-400">/month</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">or $249 lifetime</p>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "Everything in Basic",
-                  "Momentum-Based Divergences",
                   "VWAP + StdDev Bands",
+                  "Momentum Bar Coloring",
                   "AI Chart Analysis",
                   "All Smart Alerts",
                   "Priority Support"
@@ -344,9 +328,12 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <button className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors">
-                Get Pro
+              <button className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-lg transition-colors">
+                Get TouchGrass
               </button>
+              <p className="text-center text-gray-500 text-sm mt-4">
+                7-day money-back guarantee
+              </p>
             </div>
           </div>
         </div>
