@@ -1,0 +1,298 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0
+// © TouchGrass / Blockstone Labs
+
+//@version=6
+indicator("TouchGrass", shorttitle="TG", overlay=true, max_boxes_count=10, max_lines_count=100, max_labels_count=100)
+
+// ═══════════════════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════════════════
+
+// Moving Average
+showMA      = input.bool(true, "Show Momentum MA", group="Momentum")
+fastLen     = input.int(9, "Fast MA Length", minval=5, maxval=50, group="Momentum")
+slowLen     = input.int(21, "Slow MA Length (for signals)", minval=10, maxval=100, group="Momentum")
+barColors   = input.bool(true, "Momentum Bar Coloring", group="Momentum")
+
+// Levels
+showPD      = input.bool(true, "Show PD Levels", group="Levels")
+showVWAP    = input.bool(true, "Show VWAP", group="Levels")
+showVWAPBands = input.bool(true, "  └ VWAP Bands", group="Levels")
+showORB     = input.bool(true, "Show Opening Range", group="Levels")
+orbSession  = input.string("0930-0945", "  └ ORB Session", group="Levels")
+orbTZ       = input.string("America/New_York", "  └ Timezone", options=["America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "UTC"], group="Levels")
+
+// Divergence (Momentum-based RSI)
+showDiv     = input.bool(true, "Show Divergences", group="Divergence")
+momLen      = input.int(10, "Momentum Length", minval=5, maxval=20, group="Divergence")
+rsiLen      = input.int(14, "RSI Length", minval=5, maxval=30, group="Divergence")
+pivotMin    = input.int(5, "Min Bars Between Pivots", minval=3, maxval=20, group="Divergence")
+pivotMax    = input.int(50, "Max Bars Between Pivots", minval=20, maxval=100, group="Divergence")
+pivotLookback = input.int(5, "Pivot Lookback", minval=2, maxval=10, group="Divergence")
+
+// Signals
+showSignals = input.bool(true, "Show Bullish/Bearish Signals", group="Signals")
+
+// Display
+showLegend  = input.bool(true, "Show Legend", group="Display")
+
+// ═══════════════════════════════════════════════════════════════════
+// COLORS
+// ═══════════════════════════════════════════════════════════════════
+
+var color C_BULL    = #00e676
+var color C_BEAR    = #ff1744
+var color C_PD      = #ffb74d
+var color C_VWAP    = #4fc3f7
+var color C_ORB     = #b2ff59
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+newDay = ta.change(time("D")) != 0
+atr = ta.atr(14)
+var int dayStartBar = 0
+if newDay
+    dayStartBar := bar_index
+
+// ═══════════════════════════════════════════════════════════════════
+// MOMENTUM MA (with neon glow)
+// ═══════════════════════════════════════════════════════════════════
+
+fastMA = ta.sma(close, fastLen)
+slowMA = ta.sma(close, slowLen)
+
+bullishTrend = fastMA > slowMA
+bearishTrend = fastMA < slowMA
+
+maColor = bullishTrend ? C_BULL : C_BEAR
+
+plot(showMA ? fastMA : na, "MA Glow", color.new(maColor, 60), 6)
+plot(showMA ? fastMA : na, "MA", maColor, 2)
+
+maCrossUp = ta.crossover(fastMA, slowMA)
+maCrossDown = ta.crossunder(fastMA, slowMA)
+
+// ═══════════════════════════════════════════════════════════════════
+// MOMENTUM BAR COLORING
+// ═══════════════════════════════════════════════════════════════════
+
+barcolor(barColors and bullishTrend ? color.new(C_BULL, 40) : barColors and bearishTrend ? color.new(C_BEAR, 40) : na)
+
+// ═══════════════════════════════════════════════════════════════════
+// PREVIOUS DAY LEVELS (Rectangle Box)
+// ═══════════════════════════════════════════════════════════════════
+
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], barmerge.gaps_off, barmerge.lookahead_on)
+pdMid = math.avg(pdh, pdl)
+
+var box pdBox = na
+var line pdMidLine = na
+var label pdhLabel = na
+var label pdlLabel = na
+
+if newDay and showPD
+    box.delete(pdBox)
+    line.delete(pdMidLine)
+    label.delete(pdhLabel)
+    label.delete(pdlLabel)
+    
+    pdBox := box.new(bar_index, pdh, bar_index + 500, pdl, 
+         border_color=C_PD, border_width=1,
+         bgcolor=color.new(C_PD, 92))
+    
+    pdMidLine := line.new(bar_index, pdMid, bar_index + 500, pdMid,
+         color=C_PD, width=1, style=line.style_dotted)
+    
+    pdhLabel := label.new(bar_index + 500, pdh, "PDH " + str.tostring(pdh, format.mintick),
+         color=color.new(C_PD, 80), textcolor=C_PD,
+         style=label.style_label_left, size=size.tiny)
+    pdlLabel := label.new(bar_index + 500, pdl, "PDL " + str.tostring(pdl, format.mintick),
+         color=color.new(C_PD, 80), textcolor=C_PD,
+         style=label.style_label_left, size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════
+// OPENING RANGE (Rectangle Box)
+// ═══════════════════════════════════════════════════════════════════
+
+var float orbHi = na
+var float orbLo = na
+var bool orbDone = false
+var box orbBox = na
+var line orbMidLine = na
+var label orbHiLabel = na
+var label orbLoLabel = na
+
+inORB = not na(time(timeframe.period, orbSession, orbTZ))
+
+if newDay
+    orbHi := na
+    orbLo := na
+    orbDone := false
+    box.delete(orbBox)
+    line.delete(orbMidLine)
+    label.delete(orbHiLabel)
+    label.delete(orbLoLabel)
+
+if inORB
+    orbHi := na(orbHi) ? high : math.max(orbHi, high)
+    orbLo := na(orbLo) ? low : math.min(orbLo, low)
+    
+if not inORB and not na(orbHi) and not orbDone and showORB
+    orbDone := true
+    orbMid = math.avg(orbHi, orbLo)
+    
+    orbBox := box.new(dayStartBar, orbHi, bar_index + 500, orbLo, 
+         border_color=C_ORB, border_width=1,
+         bgcolor=color.new(C_ORB, 92))
+    
+    orbMidLine := line.new(dayStartBar, orbMid, bar_index + 500, orbMid,
+         color=C_ORB, width=1, style=line.style_dotted)
+    
+    orbHiLabel := label.new(bar_index + 500, orbHi, "ORB H " + str.tostring(orbHi, format.mintick),
+         color=color.new(C_ORB, 80), textcolor=C_ORB,
+         style=label.style_label_left, size=size.tiny)
+    orbLoLabel := label.new(bar_index + 500, orbLo, "ORB L " + str.tostring(orbLo, format.mintick),
+         color=color.new(C_ORB, 80), textcolor=C_ORB,
+         style=label.style_label_left, size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════
+// VWAP + BANDS
+// ═══════════════════════════════════════════════════════════════════
+
+var float sumPV = 0.0
+var float sumV = 0.0
+var float sumPV2 = 0.0
+
+if newDay or barstate.isfirst
+    sumPV := hlc3 * volume
+    sumV := volume
+    sumPV2 := hlc3 * hlc3 * volume
+else
+    sumPV += hlc3 * volume
+    sumV += volume
+    sumPV2 += hlc3 * hlc3 * volume
+
+vwap_val = sumPV / sumV
+vwap_var = sumPV2 / sumV - vwap_val * vwap_val
+vwap_std = math.sqrt(math.max(vwap_var, 0))
+
+showVwapToday = bar_index >= dayStartBar
+
+plot(showVWAP and showVwapToday ? vwap_val : na, "VWAP", C_VWAP, 2)
+plot(showVWAP and showVWAPBands and showVwapToday ? vwap_val + vwap_std : na, "VWAP +1σ", color.new(C_VWAP, 70), 1)
+plot(showVWAP and showVWAPBands and showVwapToday ? vwap_val - vwap_std : na, "VWAP -1σ", color.new(C_VWAP, 70), 1)
+
+// ═══════════════════════════════════════════════════════════════════
+// MOMENTUM-BASED RSI DIVERGENCE (ChartPrime approach)
+// ═══════════════════════════════════════════════════════════════════
+
+// Use momentum as RSI source (more responsive)
+mom = ta.mom(close, momLen)
+rsi = ta.rsi(mom, rsiLen)
+
+// Detect pivot highs and lows
+phFound = not na(ta.pivothigh(high, pivotLookback, pivotLookback))
+plFound = not na(ta.pivotlow(low, pivotLookback, pivotLookback))
+
+// Store pivot data using valuewhen
+// Current pivot high
+phPrice = ta.valuewhen(phFound, high[pivotLookback], 0)
+phRsi = ta.valuewhen(phFound, rsi[pivotLookback], 0)
+phBar = ta.valuewhen(phFound, bar_index - pivotLookback, 0)
+
+// Previous pivot high
+phPrice1 = ta.valuewhen(phFound, high[pivotLookback], 1)
+phRsi1 = ta.valuewhen(phFound, rsi[pivotLookback], 1)
+phBar1 = ta.valuewhen(phFound, bar_index - pivotLookback, 1)
+
+// Current pivot low
+plPrice = ta.valuewhen(plFound, low[pivotLookback], 0)
+plRsi = ta.valuewhen(plFound, rsi[pivotLookback], 0)
+plBar = ta.valuewhen(plFound, bar_index - pivotLookback, 0)
+
+// Previous pivot low
+plPrice1 = ta.valuewhen(plFound, low[pivotLookback], 1)
+plRsi1 = ta.valuewhen(plFound, rsi[pivotLookback], 1)
+plBar1 = ta.valuewhen(plFound, bar_index - pivotLookback, 1)
+
+// Calculate bar distance between pivots
+phBarDist = phBar - phBar1
+plBarDist = plBar - plBar1
+
+// Bearish Divergence: Higher High in price, Lower High in RSI
+bearDiv = showDiv and phFound and 
+     phPrice > phPrice1 and 
+     phRsi < phRsi1 and 
+     phBarDist >= pivotMin and 
+     phBarDist <= pivotMax
+
+// Bullish Divergence: Lower Low in price, Higher Low in RSI
+bullDiv = showDiv and plFound and 
+     plPrice < plPrice1 and 
+     plRsi > plRsi1 and 
+     plBarDist >= pivotMin and 
+     plBarDist <= pivotMax
+
+// Draw divergence lines and labels
+if bearDiv
+    line.new(int(phBar1), phPrice1, int(phBar), phPrice, color=C_BEAR, width=2)
+    label.new(int(phBar), phPrice + atr * 1.5, "BEAR DIV", 
+         color=color.new(C_BEAR, 70), textcolor=C_BEAR, 
+         style=label.style_label_down, size=size.small)
+
+if bullDiv
+    line.new(int(plBar1), plPrice1, int(plBar), plPrice, color=C_BULL, width=2)
+    label.new(int(plBar), plPrice - atr * 1.5, "BULL DIV", 
+         color=color.new(C_BULL, 70), textcolor=C_BULL, 
+         style=label.style_label_up, size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════
+// BULLISH/BEARISH SIGNALS (MA Crossover)
+// ═══════════════════════════════════════════════════════════════════
+
+if showSignals and maCrossUp
+    label.new(bar_index, low - atr * 2, "BULLISH\n" + str.tostring(close, format.mintick), 
+         color=C_BULL, textcolor=color.white, 
+         style=label.style_label_up, size=size.normal)
+
+if showSignals and maCrossDown
+    label.new(bar_index, high + atr * 2, "BEARISH\n" + str.tostring(close, format.mintick), 
+         color=C_BEAR, textcolor=color.white, 
+         style=label.style_label_down, size=size.normal)
+
+// ═══════════════════════════════════════════════════════════════════
+// LEGEND
+// ═══════════════════════════════════════════════════════════════════
+
+var table legend = table.new(position.top_right, 2, 5, 
+     bgcolor=color.new(color.black, 70), border_width=0)
+
+if showLegend and barstate.islast
+    table.cell(legend, 0, 0, "TouchGrass", text_color=color.white, text_size=size.small)
+    table.cell(legend, 1, 0, "v1.0", text_color=color.gray, text_size=size.tiny)
+    
+    table.cell(legend, 0, 1, "PDH", text_color=C_PD, text_size=size.tiny)
+    table.cell(legend, 1, 1, str.tostring(pdh, format.mintick), text_color=color.white, text_size=size.tiny)
+    
+    table.cell(legend, 0, 2, "PDL", text_color=C_PD, text_size=size.tiny)
+    table.cell(legend, 1, 2, str.tostring(pdl, format.mintick), text_color=color.white, text_size=size.tiny)
+    
+    table.cell(legend, 0, 3, "VWAP", text_color=C_VWAP, text_size=size.tiny)
+    table.cell(legend, 1, 3, str.tostring(vwap_val, format.mintick), text_color=color.white, text_size=size.tiny)
+    
+    orbDisplay = orbDone ? str.tostring(orbHi, format.mintick) + "/" + str.tostring(orbLo, format.mintick) : "..."
+    table.cell(legend, 0, 4, "ORB", text_color=C_ORB, text_size=size.tiny)
+    table.cell(legend, 1, 4, orbDisplay, text_color=color.white, text_size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════════════════
+
+alertcondition(maCrossUp, "Bullish Signal", "TouchGrass: Bullish signal")
+alertcondition(maCrossDown, "Bearish Signal", "TouchGrass: Bearish signal")
+alertcondition(bullDiv, "Bullish Divergence", "TouchGrass: Bullish divergence")
+alertcondition(bearDiv, "Bearish Divergence", "TouchGrass: Bearish divergence")
+alertcondition(ta.crossover(close, pdh), "PDH Break", "Price crossed above PDH")
+alertcondition(ta.crossunder(close, pdl), "PDL Break", "Price crossed below PDL")

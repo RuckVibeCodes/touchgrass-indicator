@@ -1,0 +1,161 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0
+// © TouchGrass / Blockstone Labs
+
+//@version=6
+strategy("TouchGrass Strategy", shorttitle="TG-STRAT", overlay=true, 
+     default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+     initial_capital=10000, commission_type=strategy.commission.percent, commission_value=0.1,
+     pyramiding=0, calc_on_order_fills=false, calc_on_every_tick=false)
+
+// ═══════════════════════════════════════════════════════════════════
+// STRATEGY INPUTS
+// ═══════════════════════════════════════════════════════════════════
+
+// Moving Average
+fastLen     = input.int(9, "Fast MA Length", minval=5, maxval=50, group="Strategy")
+slowLen     = input.int(21, "Slow MA Length", minval=10, maxval=100, group="Strategy")
+
+// Risk Management
+useStopLoss = input.bool(true, "Use Stop Loss", group="Risk")
+slPercent   = input.float(2.0, "Stop Loss %", minval=0.5, maxval=10, step=0.5, group="Risk")
+useTakeProfit = input.bool(true, "Use Take Profit", group="Risk")
+tpPercent   = input.float(4.0, "Take Profit %", minval=1, maxval=20, step=0.5, group="Risk")
+useTrailing = input.bool(false, "Use Trailing Stop", group="Risk")
+trailPercent = input.float(2.0, "Trailing %", minval=0.5, maxval=10, step=0.5, group="Risk")
+
+// Trade Direction
+tradeDirection = input.string("Both", "Trade Direction", options=["Long Only", "Short Only", "Both"], group="Strategy")
+
+// Webhook (for live signals)
+webhookSecret = input.string("touchgrass2026", "Webhook Secret", group="Webhook")
+
+// ═══════════════════════════════════════════════════════════════════
+// COLORS
+// ═══════════════════════════════════════════════════════════════════
+
+var color C_BULL = #00e676
+var color C_BEAR = #ff1744
+
+// ═══════════════════════════════════════════════════════════════════
+// MOMENTUM MA
+// ═══════════════════════════════════════════════════════════════════
+
+fastMA = ta.sma(close, fastLen)
+slowMA = ta.sma(close, slowLen)
+
+bullishTrend = fastMA > slowMA
+bearishTrend = fastMA < slowMA
+
+maColor = bullishTrend ? C_BULL : C_BEAR
+
+// Plot MA with glow
+plot(fastMA, "MA Glow", color.new(maColor, 60), 6)
+plot(fastMA, "MA", maColor, 2)
+
+// Crossover signals
+maCrossUp = ta.crossover(fastMA, slowMA)
+maCrossDown = ta.crossunder(fastMA, slowMA)
+
+// Bar coloring
+barcolor(bullishTrend ? color.new(C_BULL, 40) : color.new(C_BEAR, 40))
+
+// ═══════════════════════════════════════════════════════════════════
+// STRATEGY LOGIC
+// ═══════════════════════════════════════════════════════════════════
+
+// Entry conditions
+longCondition = maCrossUp and (tradeDirection == "Long Only" or tradeDirection == "Both")
+shortCondition = maCrossDown and (tradeDirection == "Short Only" or tradeDirection == "Both")
+
+// Calculate stop loss and take profit levels
+longSL = close * (1 - slPercent / 100)
+longTP = close * (1 + tpPercent / 100)
+shortSL = close * (1 + slPercent / 100)
+shortTP = close * (1 - tpPercent / 100)
+
+// Entry logic
+if longCondition
+    strategy.entry("Long", strategy.long)
+    if useStopLoss and useTakeProfit
+        strategy.exit("Long Exit", "Long", stop=longSL, limit=longTP, trail_points=useTrailing ? close * trailPercent / 100 / syminfo.mintick : na, trail_offset=useTrailing ? close * trailPercent / 100 / 2 / syminfo.mintick : na)
+    else if useStopLoss
+        strategy.exit("Long SL", "Long", stop=longSL, trail_points=useTrailing ? close * trailPercent / 100 / syminfo.mintick : na, trail_offset=useTrailing ? close * trailPercent / 100 / 2 / syminfo.mintick : na)
+    else if useTakeProfit
+        strategy.exit("Long TP", "Long", limit=longTP)
+
+if shortCondition
+    strategy.entry("Short", strategy.short)
+    if useStopLoss and useTakeProfit
+        strategy.exit("Short Exit", "Short", stop=shortSL, limit=shortTP, trail_points=useTrailing ? close * trailPercent / 100 / syminfo.mintick : na, trail_offset=useTrailing ? close * trailPercent / 100 / 2 / syminfo.mintick : na)
+    else if useStopLoss
+        strategy.exit("Short SL", "Short", stop=shortSL, trail_points=useTrailing ? close * trailPercent / 100 / syminfo.mintick : na, trail_offset=useTrailing ? close * trailPercent / 100 / 2 / syminfo.mintick : na)
+    else if useTakeProfit
+        strategy.exit("Short TP", "Short", limit=shortTP)
+
+// Close opposite signals
+if maCrossUp and strategy.position_size < 0
+    strategy.close("Short", comment="Signal Flip")
+    
+if maCrossDown and strategy.position_size > 0
+    strategy.close("Long", comment="Signal Flip")
+
+// ═══════════════════════════════════════════════════════════════════
+// SIGNAL LABELS (for visual confirmation)
+// ═══════════════════════════════════════════════════════════════════
+
+atr = ta.atr(14)
+
+if maCrossUp
+    label.new(bar_index, low - atr * 2, "LONG\n" + str.tostring(close, format.mintick), 
+         color=C_BULL, textcolor=color.white, 
+         style=label.style_label_up, size=size.normal)
+
+if maCrossDown
+    label.new(bar_index, high + atr * 2, "SHORT\n" + str.tostring(close, format.mintick), 
+         color=C_BEAR, textcolor=color.white, 
+         style=label.style_label_down, size=size.normal)
+
+// ═══════════════════════════════════════════════════════════════════
+// ALERTS WITH WEBHOOK PAYLOAD
+// ═══════════════════════════════════════════════════════════════════
+
+// Long signal alert - sends JSON to webhook
+alertcondition(maCrossUp, "Long Signal", 
+     '{"direction":"LONG","price":{{close}},"symbol":"{{ticker}}","timeframe":"{{interval}}","stopLoss":' + str.tostring(longSL) + ',"takeProfit1":' + str.tostring(longTP) + ',"secret":"' + webhookSecret + '"}')
+
+// Short signal alert - sends JSON to webhook  
+alertcondition(maCrossDown, "Short Signal",
+     '{"direction":"SHORT","price":{{close}},"symbol":"{{ticker}}","timeframe":"{{interval}}","stopLoss":' + str.tostring(shortSL) + ',"takeProfit1":' + str.tostring(shortTP) + ',"secret":"' + webhookSecret + '"}')
+
+// ═══════════════════════════════════════════════════════════════════
+// PERFORMANCE TABLE
+// ═══════════════════════════════════════════════════════════════════
+
+var table perfTable = table.new(position.top_right, 2, 6, 
+     bgcolor=color.new(color.black, 70), border_width=1, border_color=color.gray)
+
+if barstate.islast
+    netProfit = strategy.netprofit
+    winRate = strategy.wintrades / math.max(strategy.closedtrades, 1) * 100
+    profitFactor = strategy.grossprofit / math.max(math.abs(strategy.grossloss), 1)
+    
+    table.cell(perfTable, 0, 0, "TouchGrass", text_color=color.white, text_size=size.small)
+    table.cell(perfTable, 1, 0, "Strategy", text_color=color.gray, text_size=size.tiny)
+    
+    table.cell(perfTable, 0, 1, "Net Profit", text_color=color.gray, text_size=size.tiny)
+    table.cell(perfTable, 1, 1, str.tostring(netProfit, "#.##") + " (" + str.tostring(netProfit / strategy.initial_capital * 100, "#.#") + "%)", 
+         text_color=netProfit >= 0 ? C_BULL : C_BEAR, text_size=size.tiny)
+    
+    table.cell(perfTable, 0, 2, "Win Rate", text_color=color.gray, text_size=size.tiny)
+    table.cell(perfTable, 1, 2, str.tostring(winRate, "#.#") + "%", 
+         text_color=winRate >= 50 ? C_BULL : C_BEAR, text_size=size.tiny)
+    
+    table.cell(perfTable, 0, 3, "Profit Factor", text_color=color.gray, text_size=size.tiny)
+    table.cell(perfTable, 1, 3, str.tostring(profitFactor, "#.##"), 
+         text_color=profitFactor >= 1 ? C_BULL : C_BEAR, text_size=size.tiny)
+    
+    table.cell(perfTable, 0, 4, "Total Trades", text_color=color.gray, text_size=size.tiny)
+    table.cell(perfTable, 1, 4, str.tostring(strategy.closedtrades), text_color=color.white, text_size=size.tiny)
+    
+    table.cell(perfTable, 0, 5, "Max Drawdown", text_color=color.gray, text_size=size.tiny)
+    table.cell(perfTable, 1, 5, str.tostring(strategy.max_drawdown, "#.##"), text_color=C_BEAR, text_size=size.tiny)
