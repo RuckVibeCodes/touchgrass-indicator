@@ -2,10 +2,9 @@
 /**
  * TouchGrass AI Confluence Backtest
  * 
- * Combines traditional technical signals with AI analysis
- * to backtest the confluence strategy.
+ * Full indicator signals: MA crossover + RSI divergence + VWAP + AI confluence
  * 
- * Usage: node scripts/backtest.js [options]
+ * Usage: node scripts/backtest.js [symbol] [timeframe] [startDate] [endDate]
  */
 
 const https = require('https');
@@ -15,36 +14,39 @@ const fs = require('fs');
 const CONFIG = {
   symbol: process.argv[2] || 'BTC',
   timeframe: process.argv[3] || '4h',
-  startDate: process.argv[4] || '2025-01-01',
+  startDate: process.argv[4] || '2025-06-01',
   endDate: process.argv[5] || '2026-02-09',
   initialCapital: 10000,
   positionSize: 0.1, // 10% per trade
   stopLossPercent: 2,
   takeProfitPercent: 4,
-  aiConfluenceRequired: true, // Require AI confirmation for entries
+  
+  // Indicator Settings (matching TouchGrass.pine)
+  fastMA: 9,
+  slowMA: 21,
+  rsiLength: 14,
+  momLength: 10,
+  
+  // Confluence Requirements
+  requireMACross: true,      // MA crossover signal
+  requireRSIConfirm: true,   // RSI not overbought/oversold against trade
+  requireVWAPConfirm: true,  // Price position relative to VWAP
+  requireDivergence: false,  // Divergence (optional, stricter)
+  requireAIConfluence: true, // AI sentiment alignment
+  
   apiBaseUrl: 'https://touchgrass.trade'
 };
 
 // Fetch historical data from Hyperliquid
 async function fetchHistoricalData(symbol, interval, startTime, endTime) {
   return new Promise((resolve, reject) => {
-    // Convert interval to Hyperliquid format
-    const intervalMap = {
-      '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d'
-    };
+    const intervalMap = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
     const hlInterval = intervalMap[interval] || '4h';
-    
-    // Hyperliquid uses coin name without USDT
     const coin = symbol.replace('USDT', '').replace('PERP', '');
     
     const postData = JSON.stringify({
       type: 'candleSnapshot',
-      req: {
-        coin: coin,
-        interval: hlInterval,
-        startTime: startTime,
-        endTime: endTime
-      }
+      req: { coin, interval: hlInterval, startTime, endTime }
     });
     
     const options = {
@@ -65,7 +67,6 @@ async function fetchHistoricalData(symbol, interval, startTime, endTime) {
         try {
           const result = JSON.parse(data);
           if (!Array.isArray(result)) {
-            console.log('API Response:', JSON.stringify(result).slice(0, 200));
             resolve([]);
             return;
           }
@@ -107,44 +108,170 @@ async function getMarketPulse() {
   });
 }
 
-// Calculate technical indicators
+// Calculate RSI
+function calculateRSI(closes, length) {
+  if (closes.length < length + 1) return 50;
+  
+  let gains = 0, losses = 0;
+  for (let i = closes.length - length; i < closes.length; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change > 0) gains += change;
+    else losses -= change;
+  }
+  
+  const avgGain = gains / length;
+  const avgLoss = losses / length;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
+}
+
+// Calculate VWAP (simple session VWAP)
+function calculateVWAP(candles, lookback = 24) {
+  const slice = candles.slice(-lookback);
+  let cumPV = 0, cumV = 0;
+  
+  for (const c of slice) {
+    const tp = (c.high + c.low + c.close) / 3;
+    cumPV += tp * c.volume;
+    cumV += c.volume;
+  }
+  
+  return cumV > 0 ? cumPV / cumV : candles[candles.length - 1].close;
+}
+
+// Detect momentum divergence
+function detectDivergence(prices, rsiValues, lookback = 10) {
+  if (prices.length < lookback || rsiValues.length < lookback) return null;
+  
+  const recentPrices = prices.slice(-lookback);
+  const recentRSI = rsiValues.slice(-lookback);
+  
+  // Find price lows/highs
+  const priceMin = Math.min(...recentPrices);
+  const priceMax = Math.max(...recentPrices);
+  const priceMinIdx = recentPrices.indexOf(priceMin);
+  const priceMaxIdx = recentPrices.indexOf(priceMax);
+  
+  const currentPrice = recentPrices[recentPrices.length - 1];
+  const currentRSI = recentRSI[recentRSI.length - 1];
+  
+  // Bullish divergence: price makes lower low, RSI makes higher low
+  if (currentPrice <= priceMin * 1.01 && currentRSI > recentRSI[priceMinIdx]) {
+    return 'bullish';
+  }
+  
+  // Bearish divergence: price makes higher high, RSI makes lower high
+  if (currentPrice >= priceMax * 0.99 && currentRSI < recentRSI[priceMaxIdx]) {
+    return 'bearish';
+  }
+  
+  return null;
+}
+
+// Calculate all indicators
 function calculateIndicators(candles) {
   const results = [];
+  const closes = [];
+  const rsiValues = [];
   
-  for (let i = 20; i < candles.length; i++) {
-    const slice = candles.slice(i - 20, i + 1);
+  for (let i = 0; i < candles.length; i++) {
+    closes.push(candles[i].close);
+    
+    if (i < CONFIG.slowMA) {
+      rsiValues.push(50);
+      continue;
+    }
+    
+    const slice = candles.slice(0, i + 1);
     const current = candles[i];
     
-    // Fast MA (9)
-    const fastMA = slice.slice(-9).reduce((sum, c) => sum + c.close, 0) / 9;
+    // Moving Averages
+    const fastMA = slice.slice(-CONFIG.fastMA).reduce((sum, c) => sum + c.close, 0) / CONFIG.fastMA;
+    const slowMA = slice.slice(-CONFIG.slowMA).reduce((sum, c) => sum + c.close, 0) / CONFIG.slowMA;
     
-    // Slow MA (21)
-    const slowMA = slice.reduce((sum, c) => sum + c.close, 0) / 21;
-    
-    // Previous values for crossover detection
-    const prevSlice = candles.slice(i - 21, i);
-    const prevFastMA = prevSlice.slice(-9).reduce((sum, c) => sum + c.close, 0) / 9;
-    const prevSlowMA = prevSlice.reduce((sum, c) => sum + c.close, 0) / 21;
+    // Previous MAs for crossover
+    const prevSlice = candles.slice(0, i);
+    const prevFastMA = prevSlice.slice(-CONFIG.fastMA).reduce((sum, c) => sum + c.close, 0) / CONFIG.fastMA;
+    const prevSlowMA = prevSlice.slice(-CONFIG.slowMA).reduce((sum, c) => sum + c.close, 0) / CONFIG.slowMA;
     
     // Crossover signals
     const bullishCross = prevFastMA <= prevSlowMA && fastMA > slowMA;
     const bearishCross = prevFastMA >= prevSlowMA && fastMA < slowMA;
     
-    // RSI (14)
-    const gains = [];
-    const losses = [];
-    for (let j = 1; j < 15 && i - 14 + j < candles.length; j++) {
-      const change = candles[i - 14 + j].close - candles[i - 15 + j].close;
-      gains.push(change > 0 ? change : 0);
-      losses.push(change < 0 ? -change : 0);
-    }
-    const avgGain = gains.reduce((a, b) => a + b, 0) / 14;
-    const avgLoss = losses.reduce((a, b) => a + b, 0) / 14;
-    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-    const rsi = 100 - (100 / (1 + rs));
+    // RSI
+    const rsi = calculateRSI(closes.slice(0, i + 1), CONFIG.rsiLength);
+    rsiValues.push(rsi);
     
-    // Trend determination
+    // VWAP
+    const vwap = calculateVWAP(slice, 24);
+    const aboveVWAP = current.close > vwap;
+    
+    // Divergence
+    const divergence = detectDivergence(
+      closes.slice(0, i + 1),
+      rsiValues,
+      15
+    );
+    
+    // Trend
     const trend = fastMA > slowMA ? 'bullish' : 'bearish';
+    
+    // Generate signal with confluence
+    let signal = null;
+    let confluenceScore = 0;
+    let confluenceDetails = [];
+    
+    // Check for entry signals
+    if (bullishCross || bearishCross) {
+      const isBuy = bullishCross;
+      
+      // MA Cross (required)
+      if (CONFIG.requireMACross) {
+        confluenceScore++;
+        confluenceDetails.push('MA✓');
+      }
+      
+      // RSI Confirmation
+      if (CONFIG.requireRSIConfirm) {
+        const rsiOK = isBuy ? rsi < 70 : rsi > 30;
+        if (rsiOK) {
+          confluenceScore++;
+          confluenceDetails.push('RSI✓');
+        }
+      }
+      
+      // VWAP Confirmation
+      if (CONFIG.requireVWAPConfirm) {
+        const vwapOK = isBuy ? aboveVWAP : !aboveVWAP;
+        if (vwapOK) {
+          confluenceScore++;
+          confluenceDetails.push('VWAP✓');
+        }
+      }
+      
+      // Divergence (optional)
+      if (CONFIG.requireDivergence) {
+        const divOK = (isBuy && divergence === 'bullish') || (!isBuy && divergence === 'bearish');
+        if (divOK) {
+          confluenceScore++;
+          confluenceDetails.push('DIV✓');
+        }
+      }
+      
+      // Determine required score
+      let requiredScore = 1; // MA cross minimum
+      if (CONFIG.requireRSIConfirm) requiredScore++;
+      if (CONFIG.requireVWAPConfirm) requiredScore++;
+      if (CONFIG.requireDivergence) requiredScore++;
+      
+      // Need at least 2/3 of required confirmations (excluding optional divergence)
+      const minRequired = CONFIG.requireDivergence ? requiredScore : Math.ceil(requiredScore * 0.66);
+      
+      if (confluenceScore >= minRequired) {
+        signal = isBuy ? 'BUY' : 'SELL';
+      }
+    }
     
     results.push({
       time: current.time,
@@ -156,10 +283,15 @@ function calculateIndicators(candles) {
       fastMA,
       slowMA,
       rsi,
+      vwap,
+      aboveVWAP,
       trend,
+      divergence,
       bullishCross,
       bearishCross,
-      signal: bullishCross ? 'BUY' : bearishCross ? 'SELL' : null
+      signal,
+      confluenceScore,
+      confluenceDetails
     });
   }
   
@@ -168,32 +300,37 @@ function calculateIndicators(candles) {
 
 // Run backtest
 async function runBacktest() {
-  console.log('🌿 TouchGrass AI Confluence Backtest');
+  console.log('🌿 TouchGrass Full Indicator Backtest');
   console.log('=====================================');
   console.log(`Symbol: ${CONFIG.symbol}`);
   console.log(`Timeframe: ${CONFIG.timeframe}`);
   console.log(`Period: ${CONFIG.startDate} to ${CONFIG.endDate}`);
   console.log(`Initial Capital: $${CONFIG.initialCapital}`);
-  console.log(`AI Confluence Required: ${CONFIG.aiConfluenceRequired}`);
+  console.log('');
+  console.log('📊 Confluence Requirements:');
+  console.log(`   MA Crossover: ${CONFIG.requireMACross ? '✓' : '✗'}`);
+  console.log(`   RSI Confirm: ${CONFIG.requireRSIConfirm ? '✓' : '✗'}`);
+  console.log(`   VWAP Confirm: ${CONFIG.requireVWAPConfirm ? '✓' : '✗'}`);
+  console.log(`   Divergence: ${CONFIG.requireDivergence ? '✓' : '✗'}`);
+  console.log(`   AI Confluence: ${CONFIG.requireAIConfluence ? '✓' : '✗'}`);
   console.log('');
   
-  // Get current AI pulse for confluence
+  // Get AI pulse
   let aiPulse;
   try {
     aiPulse = await getMarketPulse();
-    console.log(`📊 Current AI Sentiment: ${aiPulse.sentiment} (Fear/Greed: ${aiPulse.fearGreedIndex})`);
+    console.log(`🤖 AI Sentiment: ${aiPulse.sentiment} (F&G: ${aiPulse.fearGreedIndex})`);
   } catch (e) {
-    console.log('⚠️ Could not fetch AI pulse, proceeding without AI confluence');
+    console.log('⚠️ Could not fetch AI pulse');
     aiPulse = null;
   }
   
-  // Convert dates to timestamps
+  // Fetch data
   const startTime = new Date(CONFIG.startDate).getTime();
   const endTime = new Date(CONFIG.endDate).getTime();
   
   console.log('\n📈 Fetching historical data...');
   
-  // Fetch data in chunks (Binance limits to 1000 candles)
   let allCandles = [];
   let currentStart = startTime;
   const intervalMs = CONFIG.timeframe === '4h' ? 4 * 60 * 60 * 1000 : 
@@ -208,84 +345,79 @@ async function runBacktest() {
       currentStart = chunkEnd;
       process.stdout.write('.');
     } catch (e) {
-      console.error('\n❌ Error fetching data:', e.message);
+      console.error('\n❌ Error:', e.message);
       break;
     }
   }
   
   console.log(`\n✅ Loaded ${allCandles.length} candles`);
   
-  if (allCandles.length < 30) {
-    console.error('❌ Not enough data for backtest');
+  if (allCandles.length < 50) {
+    console.error('❌ Not enough data');
     return;
   }
   
   // Calculate indicators
   console.log('\n📊 Calculating indicators...');
   const data = calculateIndicators(allCandles);
-  console.log(`✅ Calculated indicators for ${data.length} candles`);
+  console.log(`✅ Processed ${data.length} candles`);
   
-  // Run backtest simulation
+  // Run simulation
   console.log('\n💰 Running backtest...\n');
   
   let capital = CONFIG.initialCapital;
   let position = null;
   const trades = [];
-  let wins = 0;
-  let losses = 0;
+  let wins = 0, losses = 0;
+  let maxDrawdown = 0, peak = CONFIG.initialCapital;
   
   for (let i = 0; i < data.length; i++) {
     const candle = data[i];
     
-    // Check for exit if in position
+    // Track drawdown
+    if (capital > peak) peak = capital;
+    const drawdown = (peak - capital) / peak * 100;
+    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+    
+    // Exit logic
     if (position) {
       const pnlPercent = position.side === 'long' 
         ? (candle.close - position.entry) / position.entry * 100
         : (position.entry - candle.close) / position.entry * 100;
       
-      // Stop loss
       if (pnlPercent <= -CONFIG.stopLossPercent) {
         const pnl = capital * CONFIG.positionSize * (pnlPercent / 100);
         capital += pnl;
         trades.push({ ...position, exit: candle.close, pnl, pnlPercent, reason: 'SL' });
         losses++;
         position = null;
-      }
-      // Take profit
-      else if (pnlPercent >= CONFIG.takeProfitPercent) {
+      } else if (pnlPercent >= CONFIG.takeProfitPercent) {
         const pnl = capital * CONFIG.positionSize * (pnlPercent / 100);
         capital += pnl;
         trades.push({ ...position, exit: candle.close, pnl, pnlPercent, reason: 'TP' });
         wins++;
         position = null;
-      }
-      // Opposite signal exit
-      else if ((position.side === 'long' && candle.bearishCross) || 
-               (position.side === 'short' && candle.bullishCross)) {
+      } else if ((position.side === 'long' && candle.bearishCross) || 
+                 (position.side === 'short' && candle.bullishCross)) {
         const pnl = capital * CONFIG.positionSize * (pnlPercent / 100);
         capital += pnl;
         trades.push({ ...position, exit: candle.close, pnl, pnlPercent, reason: 'SIGNAL' });
-        if (pnl > 0) wins++;
-        else losses++;
+        if (pnl > 0) wins++; else losses++;
         position = null;
       }
     }
     
-    // Check for entry
+    // Entry logic
     if (!position && candle.signal) {
-      // AI Confluence check
       let aiConfluent = true;
-      if (CONFIG.aiConfluenceRequired && aiPulse) {
+      
+      if (CONFIG.requireAIConfluence && aiPulse) {
         if (candle.signal === 'BUY') {
-          // For longs, prefer neutral or bullish sentiment, or extreme fear (contrarian)
-          aiConfluent = aiPulse.fearGreedIndex <= 25 || // Extreme fear = buy opportunity
-                        aiPulse.sentiment === 'neutral' ||
-                        aiPulse.sentiment === 'greed';
+          // Buy on fear or neutral
+          aiConfluent = aiPulse.fearGreedIndex <= 40 || aiPulse.sentiment === 'neutral';
         } else {
-          // For shorts, prefer extreme greed (contrarian) or bearish
-          aiConfluent = aiPulse.fearGreedIndex >= 75 || // Extreme greed = sell opportunity
-                        aiPulse.sentiment === 'neutral' ||
-                        aiPulse.sentiment === 'fear';
+          // Sell on greed or neutral  
+          aiConfluent = aiPulse.fearGreedIndex >= 60 || aiPulse.sentiment === 'neutral';
         }
       }
       
@@ -294,13 +426,13 @@ async function runBacktest() {
           side: candle.signal === 'BUY' ? 'long' : 'short',
           entry: candle.close,
           time: new Date(candle.time).toISOString(),
-          aiConfluence: aiPulse ? aiPulse.sentiment : 'N/A'
+          confluence: candle.confluenceDetails.join(' ')
         };
       }
     }
   }
   
-  // Close any open position at end
+  // Close open position
   if (position) {
     const lastCandle = data[data.length - 1];
     const pnlPercent = position.side === 'long' 
@@ -309,50 +441,51 @@ async function runBacktest() {
     const pnl = capital * CONFIG.positionSize * (pnlPercent / 100);
     capital += pnl;
     trades.push({ ...position, exit: lastCandle.close, pnl, pnlPercent, reason: 'EOD' });
-    if (pnl > 0) wins++;
-    else losses++;
+    if (pnl > 0) wins++; else losses++;
   }
   
+  // Calculate stats
+  const totalReturn = ((capital - CONFIG.initialCapital) / CONFIG.initialCapital * 100);
+  const winRate = trades.length > 0 ? (wins / trades.length * 100) : 0;
+  const avgWin = trades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnlPercent, 0) / (wins || 1);
+  const avgLoss = trades.filter(t => t.pnl < 0).reduce((sum, t) => sum + Math.abs(t.pnlPercent), 0) / (losses || 1);
+  const profitFactor = avgLoss > 0 ? (avgWin * wins) / (avgLoss * losses) : 0;
+  
   // Results
-  console.log('═══════════════════════════════════════');
-  console.log('📊 BACKTEST RESULTS');
-  console.log('═══════════════════════════════════════');
+  console.log('═══════════════════════════════════════════════════');
+  console.log('📊 BACKTEST RESULTS - TouchGrass Full Confluence');
+  console.log('═══════════════════════════════════════════════════');
   console.log(`Total Trades: ${trades.length}`);
   console.log(`Wins: ${wins} | Losses: ${losses}`);
-  console.log(`Win Rate: ${trades.length > 0 ? (wins / trades.length * 100).toFixed(1) : 0}%`);
+  console.log(`Win Rate: ${winRate.toFixed(1)}%`);
+  console.log(`Avg Win: +${avgWin.toFixed(2)}% | Avg Loss: -${avgLoss.toFixed(2)}%`);
+  console.log(`Profit Factor: ${profitFactor.toFixed(2)}`);
+  console.log(`Max Drawdown: ${maxDrawdown.toFixed(2)}%`);
+  console.log('───────────────────────────────────────────────────');
   console.log(`Starting Capital: $${CONFIG.initialCapital.toFixed(2)}`);
   console.log(`Final Capital: $${capital.toFixed(2)}`);
-  console.log(`Total Return: ${((capital - CONFIG.initialCapital) / CONFIG.initialCapital * 100).toFixed(2)}%`);
-  console.log('');
+  console.log(`Total Return: ${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}%`);
+  console.log('═══════════════════════════════════════════════════');
   
-  // Show last 10 trades
+  // Recent trades
   if (trades.length > 0) {
-    console.log('📋 Recent Trades:');
-    console.log('─────────────────────────────────────');
+    console.log('\n📋 Recent Trades:');
     trades.slice(-10).forEach(t => {
       const emoji = t.pnl > 0 ? '✅' : '❌';
-      console.log(`${emoji} ${t.side.toUpperCase()} @ ${t.entry.toFixed(2)} → ${t.exit.toFixed(2)} | ${t.pnlPercent.toFixed(2)}% | ${t.reason}`);
+      console.log(`${emoji} ${t.side.toUpperCase()} @ ${t.entry.toFixed(0)} → ${t.exit.toFixed(0)} | ${t.pnlPercent >= 0 ? '+' : ''}${t.pnlPercent.toFixed(2)}% | ${t.reason} | ${t.confluence}`);
     });
   }
   
   // Save results
   const results = {
     config: CONFIG,
-    summary: {
-      totalTrades: trades.length,
-      wins,
-      losses,
-      winRate: trades.length > 0 ? (wins / trades.length * 100).toFixed(1) : 0,
-      startingCapital: CONFIG.initialCapital,
-      finalCapital: capital,
-      totalReturn: ((capital - CONFIG.initialCapital) / CONFIG.initialCapital * 100).toFixed(2)
-    },
+    summary: { trades: trades.length, wins, losses, winRate, avgWin, avgLoss, profitFactor, maxDrawdown, totalReturn, finalCapital: capital },
     trades,
     aiPulse
   };
   
   fs.writeFileSync('/tmp/backtest_results.json', JSON.stringify(results, null, 2));
-  console.log('\n💾 Full results saved to /tmp/backtest_results.json');
+  console.log('\n💾 Results saved to /tmp/backtest_results.json');
 }
 
 runBacktest().catch(console.error);
