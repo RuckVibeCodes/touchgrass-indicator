@@ -4,4 +4,5 @@ export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+// Hardcode model for now - env var causing issues
+export const MODEL = 'gpt-4o-mini';
