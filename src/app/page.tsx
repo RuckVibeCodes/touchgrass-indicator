@@ -138,6 +138,9 @@ export default function Home() {
               <span className="text-xl font-bold">TouchGrass</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
+              <Link href="/learn" className="text-gray-400 hover:text-white transition-colors">
+                Learn
+              </Link>
               <Link href="#features" className="text-gray-400 hover:text-white transition-colors">
                 Features
               </Link>
@@ -151,12 +154,20 @@ export default function Home() {
                 FAQ
               </Link>
             </div>
-            <Link
-              href="#pricing"
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
-            >
-              Get Started
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 rounded-lg font-medium transition-colors"
+              >
+                Launch App
+              </Link>
+              <Link
+                href="#pricing"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         </nav>
       </header>
@@ -180,60 +191,30 @@ export default function Home() {
               href="/dashboard"
               className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-lg transition-colors"
             >
-              🚀 Launch App — Free
+              🚀 Launch App
             </Link>
             <Link
               href="#pricing"
-              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-semibold text-lg transition-colors"
+              className="px-8 py-4 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 rounded-xl font-semibold text-lg transition-colors"
             >
-              View Pricing
+              Get Pro Access
             </Link>
           </div>
-          <p className="text-sm text-gray-500 mt-4">
-            ✨ Free tier includes: Dashboard, 1 AI analysis/day, Degen Radar, Daily Briefing
-          </p>
           
-          {/* Equity Curve */}
+          {/* Chart mockup */}
           <div className="mt-16 relative">
             <div className="bg-gradient-to-b from-emerald-500/20 to-transparent absolute inset-0 blur-3xl" />
-            <div className="relative bg-[#111118] border border-gray-800 rounded-2xl p-6 max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Signal Performance</h3>
-                  <p className="text-sm text-gray-400">BTC 4H confluence signals • Last 8 months</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-emerald-400">+1.74%</p>
-                  <p className="text-sm text-gray-400">41 trades • 41.5% win rate</p>
-                </div>
+            <div className="relative bg-[#111118] border border-gray-800 rounded-2xl p-4 max-w-4xl mx-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="ml-4 text-gray-500 text-sm">BTCUSD · 15m · TouchGrass v1.0</span>
               </div>
-              <div className="h-48 flex items-end justify-between gap-1 px-4 bg-[#0a0a0f] rounded-lg p-4">
-                {[0, 2, 1, 4, 3, 6, 8, 7, 10, 12, 11, 14, 13, 15, 14, 16, 15, 17, 16, 18].map((point, i) => (
-                  <div
-                    key={i}
-                    className="bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t w-full transition-all hover:from-emerald-400 hover:to-emerald-300"
-                    style={{ height: `${(point / 18) * 100}%`, minHeight: '4px' }}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-4">
-                <div className="grid grid-cols-4 gap-4 text-center flex-1">
-                  <div>
-                    <p className="text-lg font-bold text-white">1.46</p>
-                    <p className="text-xs text-gray-500">Profit Factor</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-white">1.0%</p>
-                    <p className="text-xs text-gray-500">Max Drawdown</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-white">4H</p>
-                    <p className="text-xs text-gray-500">Timeframe</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-emerald-400">Live</p>
-                    <p className="text-xs text-gray-500">Status</p>
-                  </div>
+              <div className="aspect-video bg-[#0a0a0f] rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">📊</div>
+                  <p className="text-gray-500">Chart Preview Coming Soon</p>
                 </div>
               </div>
             </div>
