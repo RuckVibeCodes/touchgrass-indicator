@@ -1,0 +1,87 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © RuckVibeCodes
+
+//@version=6
+indicator("Mini_ORB", overlay=true, max_boxes_count=2, max_lines_count=2)
+
+// INPUTS
+wickColor = input.color(color.new(color.blue, 70), "Wick Box Color")
+borderColor = input.color(color.blue, "Border Color")
+borderWidth = input.int(1, "Border Width", minval=1, maxval=4)
+midlineColor = input.color(color.white, "Midline Color")
+
+// 1H DATA (works on any timeframe)
+[h1Open, h1High, h1Low, h1Close] = request.security(syminfo.tickerid, "60", [open, high, low, close], lookahead=barmerge.lookahead_off)
+newHourBar = ta.change(time("60")) != 0
+
+var float prevH1Open = na
+var float prevH1High = na
+var float prevH1Low = na
+var float prevH1Close = na
+
+if newHourBar
+    prevH1Open := h1Open[1]
+    prevH1High := h1High[1]
+    prevH1Low := h1Low[1]
+    prevH1Close := h1Close[1]
+
+// BOX & LINE MANAGEMENT
+var box topWickBox = na
+var box bottomWickBox = na
+var line topMidline = na
+var line bottomMidline = na
+
+if newHourBar and not na(prevH1Close)
+    // Delete previous objects
+    if not na(topWickBox)
+        box.delete(topWickBox)
+    if not na(bottomWickBox)
+        box.delete(bottomWickBox)
+    if not na(topMidline)
+        line.delete(topMidline)
+    if not na(bottomMidline)
+        line.delete(bottomMidline)
+    
+    topWickBox := na
+    bottomWickBox := na
+    topMidline := na
+    bottomMidline := na
+    
+    isGreen = prevH1Close > prevH1Open
+    isRed = prevH1Close < prevH1Open
+    
+    if isGreen and prevH1High > prevH1Close
+        // Green: TOP wick box
+        boxTop = prevH1High
+        boxBottom = prevH1Close
+        boxMid = (boxTop + boxBottom) / 2
+        
+        topWickBox := box.new(bar_index, boxTop, bar_index + 1, boxBottom, bgcolor=wickColor, border_color=borderColor, border_width=borderWidth, extend=extend.right)
+        topMidline := line.new(bar_index, boxMid, bar_index + 1, boxMid, color=midlineColor, style=line.style_dotted, extend=extend.right)
+    
+    else if isRed and prevH1Close > prevH1Low
+        // Red: BOTTOM wick box
+        boxTop = prevH1Close
+        boxBottom = prevH1Low
+        boxMid = (boxTop + boxBottom) / 2
+        
+        bottomWickBox := box.new(bar_index, boxTop, bar_index + 1, boxBottom, bgcolor=wickColor, border_color=borderColor, border_width=borderWidth, extend=extend.right)
+        bottomMidline := line.new(bar_index, boxMid, bar_index + 1, boxMid, color=midlineColor, style=line.style_dotted, extend=extend.right)
+    
+    else
+        // Doji: BOTH wicks
+        if prevH1High > prevH1Close
+            boxTop = prevH1High
+            boxBottom = prevH1Close
+            boxMid = (boxTop + boxBottom) / 2
+            
+            topWickBox := box.new(bar_index, boxTop, bar_index + 1, boxBottom, bgcolor=wickColor, border_color=borderColor, border_width=borderWidth, extend=extend.right)
+            topMidline := line.new(bar_index, boxMid, bar_index + 1, boxMid, color=midlineColor, style=line.style_dotted, extend=extend.right)
+        
+        if prevH1Close > prevH1Low
+            boxTop = prevH1Close
+            boxBottom = prevH1Low
+            boxMid = (boxTop + boxBottom) / 2
+            
+            bottomWickBox := box.new(bar_index, boxTop, bar_index + 1, boxBottom, bgcolor=wickColor, border_color=borderColor, border_width=borderWidth, extend=extend.right)
+            bottomMidline := line.new(bar_index, boxMid, bar_index + 1, boxMid, color=midlineColor, style=line.style_dotted, extend=extend.right)
