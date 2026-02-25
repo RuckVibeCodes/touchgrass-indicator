@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LiveStatsBar from "@/components/LiveStatsBar";
 import FaqAccordion from "@/components/FaqAccordion";
 import PricingSection from "@/components/PricingSection";
 import MobileNav from "@/components/MobileNav";
@@ -239,6 +240,11 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Live Stats */}
+      <section className="border-y border-gray-800/60 bg-[#0d0d14]">
+        <LiveStatsBar />
       </section>
 
       {/* Features */}
